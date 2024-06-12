@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {Test, console} from "../lib/forge-std/src/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {WETHToken} from "../src/WETHToken.sol";
 import {BscBridge} from "../src/BscBridge.sol";
 
