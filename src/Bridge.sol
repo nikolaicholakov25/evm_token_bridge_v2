@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import "./TokenBase.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "forge-std/console.sol";
 
 contract Bridge is Ownable {
     mapping(address => address) public tokenPairs;
@@ -54,7 +55,11 @@ contract Bridge is Ownable {
         emit TokenBurned(_from, _erc20token, _ammount);
     }
 
-    function mint(address _to, address _erc20token, uint256 _ammount) external {
+    function mint(
+        address _to,
+        address _erc20token,
+        uint256 _ammount
+    ) external onlyOwner {
         bool pairExist = tokenPairs[_erc20token] != address(0);
 
         string memory nativeName = TokenBase(_erc20token).name();
@@ -67,10 +72,11 @@ contract Bridge is Ownable {
             TokenBase newToken = new TokenBase(
                 wrappedName,
                 wrappedSymbol,
-                this.owner()
+                address(this)
             );
 
             tokenPairs[_erc20token] = address(newToken);
+            newToken.allowAddress(this.owner());
         }
 
         assert(tokenPairs[_erc20token] != address(0));
