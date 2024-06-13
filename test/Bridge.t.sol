@@ -43,6 +43,14 @@ contract BridgeTest is Test {
         vm.assertTrue(erc20token.balanceOf(user) == 100);
     }
 
+    function test_onlyOwner_can_release() public {
+        erc20token.mint(address(bridge), 100);
+
+        vm.prank(address(2));
+        vm.expectRevert();
+        bridge.release(user, address(erc20token), 100);
+    }
+
     function test_can_burn() public {
         erc20token.mint(user, 100);
 
@@ -54,6 +62,12 @@ contract BridgeTest is Test {
         bridge.burn(user, address(erc20token), 100);
 
         vm.assertTrue(erc20token.balanceOf(user) == 0);
+    }
+
+    function test_onlyOwner_can_mint() public {
+        vm.prank(address(2));
+        vm.expectRevert();
+        bridge.mint(user, address(erc20token), 100);
     }
 
     function test_can_mint() public {
