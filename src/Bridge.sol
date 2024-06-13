@@ -16,7 +16,7 @@ contract Bridge is Ownable {
     event TokenLocked(address _from, address _erc20token, uint256 _ammount);
     event TokenReleased(address _to, address _erc20token, uint256 _ammount);
     event TokenBurned(address _from, address _erc20token, uint256 _ammount);
-    event TokenClaimed(address _to, address _erc20token, uint256 _ammount);
+    event TokenMinted(address _to, address _erc20token, uint256 _ammount);
 
     function lock(
         address _from,
@@ -70,11 +70,12 @@ contract Bridge is Ownable {
                 this.owner()
             );
 
-            tokenPairs[_erc20token] = newToken;
+            tokenPairs[_erc20token] = address(newToken);
         }
 
         assert(tokenPairs[_erc20token] != address(0));
 
-        TokenBase(tokenPairs[_erc20token]).mint(_to, _amount);
+        TokenBase(tokenPairs[_erc20token]).mint(_to, _ammount);
+        emit TokenMinted(_to, tokenPairs[_erc20token], _ammount);
     }
 }
