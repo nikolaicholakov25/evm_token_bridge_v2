@@ -19,15 +19,20 @@ contract Bridge is Ownable {
     event TokenBurned(address _from, address _erc20token, uint256 _ammount);
     event TokenMinted(address _to, address _erc20token, uint256 _ammount);
 
+    error LockFailed(address _from, address _erc20token, uint256 _ammount);
+    error ReleaseFailed(address _to, address _erc20token, uint256 _ammount);
+
     function lock(
         address _from,
         address _erc20token,
         uint256 _ammount
     ) external {
-        require(
-            TokenBase(_erc20token).transferFrom(_from, address(this), _ammount),
-            "Locking failed"
-        );
+        TokenBase token = TokenBase(_erc20token);
+        bool success = token.transferFrom(_from, address(this), _ammount);
+
+        if (!success) {
+            revert LockFailed(_from, _erc20token, _ammount);
+        }
 
         emit TokenLocked(_from, _erc20token, _ammount);
     }
@@ -37,10 +42,12 @@ contract Bridge is Ownable {
         address _erc20token,
         uint256 _ammount
     ) external onlyOwner {
-        require(
-            TokenBase(_erc20token).transfer(_to, _ammount),
-            "Release failed"
-        );
+        TokenBase token = TokenBase(_erc20token);
+        bool success = token.transfer(_to, _ammount);
+
+        if (!success) {
+            revert ReleaseFailed(_from, _erc20token, _ammount);
+        }
 
         emit TokenReleased(_to, _erc20token, _ammount);
     }
@@ -50,7 +57,8 @@ contract Bridge is Ownable {
         address _erc20token,
         uint256 _ammount
     ) external {
-        TokenBase(_erc20token).burnFrom(_from, _ammount);
+        TokenBase token = TokenBase(_erc20token);
+        token.burnFrom(_from, _ammount);
 
         emit TokenBurned(_from, _erc20token, _ammount);
     }
@@ -60,10 +68,11 @@ contract Bridge is Ownable {
         address _erc20token,
         uint256 _ammount
     ) external onlyOwner {
+        TokenBase token = TokenBase(_erc20token);
         bool pairExist = tokenPairs[_erc20token] != address(0);
 
-        string memory nativeName = TokenBase(_erc20token).name();
-        string memory nativeSymbol = TokenBase(_erc20token).symbol();
+        string memory nativeName = token.name();
+        string memory nativeSymbol = token.symbol();
 
         string memory wrappedName = string.concat("Wrapped", nativeName);
         string memory wrappedSymbol = string.concat("W", nativeSymbol);
