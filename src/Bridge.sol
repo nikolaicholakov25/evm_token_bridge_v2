@@ -7,12 +7,15 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "forge-std/console.sol";
 
 contract Bridge is Ownable {
+    uint256 public fee;
     mapping(address => address) public wrappedToNativeTokens;
 
     fallback() external payable {}
     receive() external payable {}
 
-    constructor(address _initialOwner) Ownable(_initialOwner) {}
+    constructor(address _initialOwner, uint256 _fee) Ownable(_initialOwner) {
+        fee = _fee;
+    }
 
     event TokenLocked(address _from, address _erc20token, uint256 _ammount);
     event TokenReleased(address _to, address _erc20token, uint256 _ammount);
@@ -22,11 +25,24 @@ contract Bridge is Ownable {
     error LockFailed(address _from, address _erc20token, uint256 _ammount);
     error ReleaseFailed(address _to, address _erc20token, uint256 _ammount);
 
+    error FeeNotPaid(address _from, uint256 _paid, uint256 _required);
+
+    modifier chargeFee() {
+        if (msg.value < fee) {
+            revert FeeNotPaid(msg.sender, msg.value, fee);
+        }
+        _;
+    }
+
+    function updateFee(uint256 _fee) onlyOwner {
+        fee = _fee;
+    }
+
     function lock(
         address _from,
         address _erc20token,
         uint256 _ammount
-    ) external {
+    ) external payable chargeFee {
         TokenBase token = TokenBase(_erc20token);
         bool success = token.transferFrom(_from, address(this), _ammount);
 
@@ -56,7 +72,7 @@ contract Bridge is Ownable {
         address _from,
         address _erc20token,
         uint256 _ammount
-    ) external {
+    ) external payable chargeFee {
         TokenBase token = TokenBase(_erc20token);
         token.burnFrom(_from, _ammount);
 
