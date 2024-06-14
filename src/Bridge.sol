@@ -7,27 +7,48 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "forge-std/console.sol";
 
 contract Bridge is Ownable {
-    mapping(address => address) public tokenPairs;
+    uint256 public fee;
+    mapping(address => address) public wrappedToNativeTokens;
 
     fallback() external payable {}
     receive() external payable {}
 
-    constructor(address _initialOwner) Ownable(_initialOwner) {}
+    constructor(address _initialOwner, uint256 _fee) Ownable(_initialOwner) {
+        fee = _fee;
+    }
 
     event TokenLocked(address _from, address _erc20token, uint256 _ammount);
     event TokenReleased(address _to, address _erc20token, uint256 _ammount);
     event TokenBurned(address _from, address _erc20token, uint256 _ammount);
     event TokenMinted(address _to, address _erc20token, uint256 _ammount);
 
+    error LockFailed(address _from, address _erc20token, uint256 _ammount);
+    error ReleaseFailed(address _to, address _erc20token, uint256 _ammount);
+
+    error FeeNotPaid(address _from, uint256 _paid, uint256 _required);
+
+    modifier chargeFee() {
+        if (msg.value < fee) {
+            revert FeeNotPaid(msg.sender, msg.value, fee);
+        }
+        _;
+    }
+
+    function updateFee(uint256 _fee) onlyOwner {
+        fee = _fee;
+    }
+
     function lock(
         address _from,
         address _erc20token,
         uint256 _ammount
-    ) external {
-        require(
-            TokenBase(_erc20token).transferFrom(_from, address(this), _ammount),
-            "Locking failed"
-        );
+    ) external payable chargeFee {
+        TokenBase token = TokenBase(_erc20token);
+        bool success = token.transferFrom(_from, address(this), _ammount);
+
+        if (!success) {
+            revert LockFailed(_from, _erc20token, _ammount);
+        }
 
         emit TokenLocked(_from, _erc20token, _ammount);
     }
@@ -37,10 +58,12 @@ contract Bridge is Ownable {
         address _erc20token,
         uint256 _ammount
     ) external onlyOwner {
-        require(
-            TokenBase(_erc20token).transfer(_to, _ammount),
-            "Release failed"
-        );
+        TokenBase token = TokenBase(_erc20token);
+        bool success = token.transfer(_to, _ammount);
+
+        if (!success) {
+            revert ReleaseFailed(_to, _erc20token, _ammount);
+        }
 
         emit TokenReleased(_to, _erc20token, _ammount);
     }
@@ -49,8 +72,9 @@ contract Bridge is Ownable {
         address _from,
         address _erc20token,
         uint256 _ammount
-    ) external {
-        TokenBase(_erc20token).burnFrom(_from, _ammount);
+    ) external payable chargeFee {
+        TokenBase token = TokenBase(_erc20token);
+        token.burnFrom(_from, _ammount);
 
         emit TokenBurned(_from, _erc20token, _ammount);
     }
@@ -60,28 +84,32 @@ contract Bridge is Ownable {
         address _erc20token,
         uint256 _ammount
     ) external onlyOwner {
-        bool pairExist = tokenPairs[_erc20token] != address(0);
+        address wrappedTokenAddress = wrappedToNativeTokens[_erc20token];
+        TokenBase nativeToken = TokenBase(_erc20token);
+        TokenBase wrappedToken;
 
-        string memory nativeName = TokenBase(_erc20token).name();
-        string memory nativeSymbol = TokenBase(_erc20token).symbol();
+        if (wrappedTokenAddress != address(0)) {
+            wrappedToken = TokenBase(wrappedTokenAddress);
+        } else {
+            string memory nativeName = nativeToken.name();
+            string memory nativeSymbol = nativeToken.symbol();
 
-        string memory wrappedName = string.concat("Wrapped", nativeName);
-        string memory wrappedSymbol = string.concat("W", nativeSymbol);
+            string memory wrappedName = string.concat("Wrapped", nativeName);
+            string memory wrappedSymbol = string.concat("W", nativeSymbol);
 
-        if (!pairExist) {
-            TokenBase newToken = new TokenBase(
+            wrappedToken = new TokenBase(
                 wrappedName,
                 wrappedSymbol,
                 address(this)
             );
 
-            tokenPairs[_erc20token] = address(newToken);
-            newToken.allowAddress(this.owner());
+            wrappedToNativeTokens[_erc20token] = address(wrappedToken);
+            wrappedToken.allowAddress(this.owner());
         }
 
-        assert(tokenPairs[_erc20token] != address(0));
+        assert(wrappedToNativeTokens[_erc20token] != address(0));
 
-        TokenBase(tokenPairs[_erc20token]).mint(_to, _ammount);
-        emit TokenMinted(_to, tokenPairs[_erc20token], _ammount);
+        wrappedToken.mint(_to, _ammount);
+        emit TokenMinted(_to, wrappedToNativeTokens[_erc20token], _ammount);
     }
 }
