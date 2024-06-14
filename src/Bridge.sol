@@ -22,8 +22,8 @@ contract Bridge is Ownable {
     event TokenBurned(address _from, address _erc20token, uint256 _ammount);
     event TokenMinted(address _to, address _erc20token, uint256 _ammount);
 
-    error LockFailed(address _from, address _erc20token, uint256 _ammount);
-    error ReleaseFailed(address _to, address _erc20token, uint256 _ammount);
+    // error LockFailed(address _from, address _erc20token, uint256 _ammount);
+    // error ReleaseFailed(address _to, address _erc20token, uint256 _ammount);
 
     error FeeNotPaid(address _from, uint256 _paid, uint256 _required);
 
@@ -46,9 +46,9 @@ contract Bridge is Ownable {
         TokenBase token = TokenBase(_erc20token);
         bool success = token.transferFrom(_from, address(this), _ammount);
 
-        if (!success) {
-            revert LockFailed(_from, _erc20token, _ammount);
-        }
+        // if (!success) {
+        //     revert LockFailed(_from, _erc20token, _ammount);
+        // }
 
         emit TokenLocked(_from, _erc20token, _ammount);
     }
@@ -61,9 +61,9 @@ contract Bridge is Ownable {
         TokenBase token = TokenBase(_erc20token);
         bool success = token.transfer(_to, _ammount);
 
-        if (!success) {
-            revert ReleaseFailed(_to, _erc20token, _ammount);
-        }
+        // if (!success) {
+        //     revert ReleaseFailed(_to, _erc20token, _ammount);
+        // }
 
         emit TokenReleased(_to, _erc20token, _ammount);
     }

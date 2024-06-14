@@ -25,6 +25,11 @@ contract BridgeTest is Test {
         erc20token = new TokenBase("Ethereum", "ETH", address(this));
     }
 
+    function test_fallback() public {
+        address(bridge).call{value: 1 ether}("0x0");
+        vm.assertEq(address(bridge).balance, 1 ether);
+    }
+
     function test_onlyOwner_can_change_fee() public {
         vm.prank(user);
         vm.expectRevert();
