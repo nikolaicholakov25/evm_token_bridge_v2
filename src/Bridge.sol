@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "forge-std/console.sol";
 
 contract Bridge is Ownable {
-    mapping(address => address) public tokenPairs;
+    mapping(address => address) public wrappedToNativeTokens;
 
     fallback() external payable {}
     receive() external payable {}
@@ -46,7 +46,7 @@ contract Bridge is Ownable {
         bool success = token.transfer(_to, _ammount);
 
         if (!success) {
-            revert ReleaseFailed(_from, _erc20token, _ammount);
+            revert ReleaseFailed(_to, _erc20token, _ammount);
         }
 
         emit TokenReleased(_to, _erc20token, _ammount);
@@ -68,29 +68,32 @@ contract Bridge is Ownable {
         address _erc20token,
         uint256 _ammount
     ) external onlyOwner {
-        TokenBase token = TokenBase(_erc20token);
-        bool pairExist = tokenPairs[_erc20token] != address(0);
+        address wrappedTokenAddress = wrappedToNativeTokens[_erc20token];
+        TokenBase nativeToken = TokenBase(_erc20token);
+        TokenBase wrappedToken;
 
-        string memory nativeName = token.name();
-        string memory nativeSymbol = token.symbol();
+        if (wrappedTokenAddress != address(0)) {
+            wrappedToken = TokenBase(wrappedTokenAddress);
+        } else {
+            string memory nativeName = nativeToken.name();
+            string memory nativeSymbol = nativeToken.symbol();
 
-        string memory wrappedName = string.concat("Wrapped", nativeName);
-        string memory wrappedSymbol = string.concat("W", nativeSymbol);
+            string memory wrappedName = string.concat("Wrapped", nativeName);
+            string memory wrappedSymbol = string.concat("W", nativeSymbol);
 
-        if (!pairExist) {
-            TokenBase newToken = new TokenBase(
+            wrappedToken = new TokenBase(
                 wrappedName,
                 wrappedSymbol,
                 address(this)
             );
 
-            tokenPairs[_erc20token] = address(newToken);
-            newToken.allowAddress(this.owner());
+            wrappedToNativeTokens[_erc20token] = address(wrappedToken);
+            wrappedToken.allowAddress(this.owner());
         }
 
-        assert(tokenPairs[_erc20token] != address(0));
+        assert(wrappedToNativeTokens[_erc20token] != address(0));
 
-        TokenBase(tokenPairs[_erc20token]).mint(_to, _ammount);
-        emit TokenMinted(_to, tokenPairs[_erc20token], _ammount);
+        wrappedToken.mint(_to, _ammount);
+        emit TokenMinted(_to, wrappedToNativeTokens[_erc20token], _ammount);
     }
 }
