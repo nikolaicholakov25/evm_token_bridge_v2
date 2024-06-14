@@ -34,7 +34,7 @@ contract Bridge is Ownable {
         _;
     }
 
-    function updateFee(uint256 _fee) onlyOwner {
+    function updateFee(uint256 _fee) public onlyOwner {
         fee = _fee;
     }
 

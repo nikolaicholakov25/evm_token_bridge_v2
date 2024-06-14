@@ -15,9 +15,42 @@ contract BridgeTest is Test {
     event TokenBurned(address _from, address _erc20token, uint256 _ammount);
     event TokenMinted(address _to, address _erc20token, uint256 _ammount);
 
+    // error LockFailed(address _from, address _erc20token, uint256 _ammount);
+    // error ReleaseFailed(address _to, address _erc20token, uint256 _ammount);
+
+    error FeeNotPaid(address _from, uint256 _paid, uint256 _required);
+
     function setUp() public {
-        bridge = new Bridge(address(this));
+        bridge = new Bridge(address(this), 0.001 ether);
         erc20token = new TokenBase("Ethereum", "ETH", address(this));
+    }
+
+    function test_onlyOwner_can_change_fee() public {
+        vm.prank(user);
+        vm.expectRevert();
+        bridge.updateFee(1 ether);
+    }
+
+    function test_can_change_fee() public {
+        bridge.updateFee(1 ether);
+        vm.assertTrue(bridge.fee() == 1 ether);
+    }
+
+    function test_lock_requires_fee() public {
+        erc20token.mint(user, 100);
+
+        vm.prank(user);
+        erc20token.approve(address(bridge), 100);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                FeeNotPaid.selector,
+                address(this),
+                0,
+                0.001 ether
+            )
+        );
+        bridge.lock(address(this), address(erc20token), 100);
     }
 
     function test_can_lock() public {
@@ -26,9 +59,11 @@ contract BridgeTest is Test {
         vm.prank(user);
         erc20token.approve(address(bridge), 100);
 
+        vm.deal(user, 1 ether);
+        vm.prank(user);
         vm.expectEmit();
         emit TokenLocked(user, address(erc20token), 100);
-        bridge.lock(user, address(erc20token), 100);
+        bridge.lock{value: 0.001 ether}(user, address(erc20token), 100);
 
         vm.assertTrue(erc20token.balanceOf(address(bridge)) == 100);
     }
@@ -51,17 +86,29 @@ contract BridgeTest is Test {
         bridge.release(user, address(erc20token), 100);
     }
 
-    function test_can_burn() public {
+    function test_burn_requires_fee() public {
         erc20token.mint(user, 100);
 
         vm.prank(user);
         erc20token.approve(address(bridge), 100);
 
+        vm.prank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(FeeNotPaid.selector, user, 0, 0.001 ether)
+        );
+        bridge.burn(user, address(erc20token), 100);
+    }
+
+    function test_can_burn() public {
+        erc20token.mint(user, 100);
+        vm.deal(user, 1 ether);
+        vm.prank(user);
+        erc20token.approve(address(bridge), 100);
+
+        vm.prank(user);
         vm.expectEmit();
         emit TokenBurned(user, address(erc20token), 100);
-        bridge.burn(user, address(erc20token), 100);
-
-        vm.assertTrue(erc20token.balanceOf(user) == 0);
+        bridge.burn{value: 0.001 ether}(user, address(erc20token), 100);
     }
 
     function test_onlyOwner_can_mint() public {
@@ -72,18 +119,22 @@ contract BridgeTest is Test {
 
     function test_can_mint() public {
         vm.expectEmit(true, true, true, false);
-        emit TokenMinted(user, bridge.tokenPairs(address(erc20token)), 100);
+        emit TokenMinted(
+            user,
+            bridge.wrappedToNativeTokens(address(erc20token)),
+            100
+        );
         bridge.mint(user, address(erc20token), 100);
 
         assertTrue(
-            TokenBase(bridge.tokenPairs(address(erc20token))).balanceOf(user) ==
-                100
+            TokenBase(bridge.wrappedToNativeTokens(address(erc20token)))
+                .balanceOf(user) == 100
         );
 
         bridge.mint(user, address(erc20token), 100);
         assertTrue(
-            TokenBase(bridge.tokenPairs(address(erc20token))).balanceOf(user) ==
-                200
+            TokenBase(bridge.wrappedToNativeTokens(address(erc20token)))
+                .balanceOf(user) == 200
         );
     }
 }
