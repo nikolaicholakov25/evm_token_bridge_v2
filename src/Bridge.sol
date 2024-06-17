@@ -8,6 +8,7 @@ import "forge-std/console.sol";
 
 contract Bridge is Ownable {
     uint256 public fee;
+    mapping(address => address) public nativeToWrappedTokens;
     mapping(address => address) public wrappedToNativeTokens;
 
     fallback() external payable {}
@@ -34,7 +35,7 @@ contract Bridge is Ownable {
         _;
     }
 
-    function updateFee(uint256 _fee) onlyOwner {
+    function updateFee(uint256 _fee) public onlyOwner {
         fee = _fee;
     }
 
@@ -73,10 +74,10 @@ contract Bridge is Ownable {
         address _erc20token,
         uint256 _ammount
     ) external payable chargeFee {
-        TokenBase token = TokenBase(_erc20token);
-        token.burnFrom(_from, _ammount);
+        TokenBase wrappedToken = TokenBase(_erc20token);
+        wrappedToken.burnFrom(_from, _ammount);
 
-        emit TokenBurned(_from, _erc20token, _ammount);
+        emit TokenBurned(_from, wrappedToNativeTokens[_erc20token], _ammount);
     }
 
     function mint(
@@ -84,7 +85,7 @@ contract Bridge is Ownable {
         address _erc20token,
         uint256 _ammount
     ) external onlyOwner {
-        address wrappedTokenAddress = wrappedToNativeTokens[_erc20token];
+        address wrappedTokenAddress = nativeToWrappedTokens[_erc20token];
         TokenBase nativeToken = TokenBase(_erc20token);
         TokenBase wrappedToken;
 
@@ -103,13 +104,15 @@ contract Bridge is Ownable {
                 address(this)
             );
 
-            wrappedToNativeTokens[_erc20token] = address(wrappedToken);
+            nativeToWrappedTokens[_erc20token] = address(wrappedToken);
+            wrappedToNativeTokens[address(wrappedToken)] = _erc20token;
+
             wrappedToken.allowAddress(this.owner());
         }
 
-        assert(wrappedToNativeTokens[_erc20token] != address(0));
+        assert(nativeToWrappedTokens[_erc20token] != address(0));
 
         wrappedToken.mint(_to, _ammount);
-        emit TokenMinted(_to, wrappedToNativeTokens[_erc20token], _ammount);
+        emit TokenMinted(_to, nativeToWrappedTokens[_erc20token], _ammount);
     }
 }
