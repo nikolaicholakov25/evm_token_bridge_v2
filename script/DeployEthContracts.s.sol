@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 import "forge-std/Script.sol";
-import {ETHToken} from "../src/ETHToken.sol";
-import {EthBridge} from "../src/EthBridge.sol";
+import {TokenBase} from "../src/TokenBase.sol";
+import {Bridge} from "../src/Bridge.sol";
 
 contract DeployEthContracts is Script {
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
+        address owner = 0xbC4C475c7DAd4EA8253626C6F73BCeA5C096eED0;
         vm.startBroadcast(deployerKey);
 
-        ETHToken token = new ETHToken();
-        EthBridge bridge = new EthBridge(token);
+        TokenBase token = new TokenBase("PEPE", "PEPE", owner);
+        Bridge bridge = new Bridge(owner, 0.001 ether);
         vm.stopBroadcast();
     }
 }
