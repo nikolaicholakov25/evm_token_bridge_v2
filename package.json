@@ -1,0 +1,16 @@
+{
+  "name": "evm_token_bridge_v2",
+  "version": "1.0.0",
+  "description": "**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "deployEthContracts": "forge script --chain sepolia script/DeployEthContracts.s.sol:DeployEthContracts --rpc-url https://sepolia.infura.io/v3/801bca15bb32440aa410df7055a1726d --broadcast --verify -vvvv",
+    "deployBscContracts": "forge script --chain bsc-testnet script/DeployBscContracts.s.sol:DeployBscContracts --rpc-url https://yolo-quick-hexagon.bsc-testnet.quiknode.pro/a32e489261e2c81faf32b91617d8984b468729ff/ --broadcast --verify -vvvv"
+  },
+  "author": "",
+  "license": "ISC"
+}
