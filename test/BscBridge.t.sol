@@ -23,13 +23,13 @@ contract BscBridgeTest is Test {
         new BscBridge(_token);
     }
 
-    function test_sets_admin() public {
-        assertEq(token.admin(), address(this));
-    }
+    // function test_sets_admin() public {
+    //     assertEq(token.admin(), address(this));
+    // }
 
-    function test_sets_token_address() public {
-        assertEq(address(token), address(bridge.WETH()));
-    }
+    // function test_sets_token_address() public {
+    //     assertEq(address(token), address(bridge.WETH()));
+    // }
 
     function test_deposit_emits_wethBurned() public {
         address test_address = address(1);

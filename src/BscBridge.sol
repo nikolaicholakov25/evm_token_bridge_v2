@@ -28,12 +28,12 @@ contract BscBridge {
     }
 
     function deposit(uint ammount) public {
-        require(WETH.burnFrom(msg.sender, ammount), "Deposit Failed");
+        WETH.burnFrom(msg.sender, ammount);
         emit WETHBurned(msg.sender, ammount);
     }
 
     function release(address to, uint ammount) public onlyAdmin {
-        require(WETH.mint(to, ammount), "Release Failed");
+        WETH.mint(to, ammount);
         emit WETHMinted(to, ammount);
     }
 }

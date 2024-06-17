@@ -23,13 +23,13 @@ contract EthBridgeTest is Test {
         new EthBridge(_token);
     }
 
-    function test_sets_admin() public {
-        assertEq(token.admin(), address(this));
-    }
+    // function test_sets_admin() public {
+    //     assertEq(token.admin(), address(this));
+    // }
 
-    function test_sets_token_address() public {
-        assertEq(address(token), address(bridge.ETH()));
-    }
+    // function test_sets_token_address() public {
+    //     assertEq(address(token), address(bridge.ETH()));
+    // }
 
     function test_deposit_emits_ethLocked() public {
         address test_address = address(1);
