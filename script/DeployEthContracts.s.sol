@@ -7,7 +7,7 @@ import {Bridge} from "../src/Bridge.sol";
 contract DeployEthContracts is Script {
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
-        address owner = 0xbC4C475c7DAd4EA8253626C6F73BCeA5C096eED0;
+        address owner = 0xD3CFB45f193f6c29B7359Ca7048526F463b3a187;
         vm.startBroadcast(deployerKey);
 
         TokenBase token = new TokenBase("PEPE", "PEPE", owner);
