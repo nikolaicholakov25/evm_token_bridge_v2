@@ -111,34 +111,48 @@ contract BridgeTest is Test {
         erc20token.approve(address(bridge), 100);
 
         vm.prank(user);
-        vm.expectEmit();
+        vm.expectEmit(false, false, false, false);
         emit TokenBurned(user, address(erc20token), 100);
         bridge.burn{value: 0.001 ether}(user, address(erc20token), 100);
+
+        assertTrue(TokenBase(erc20token).balanceOf(user) == 0);
     }
 
     function test_onlyOwner_can_mint() public {
         vm.prank(address(2));
         vm.expectRevert();
-        bridge.mint(user, address(erc20token), 100);
+        bridge.mint(user, address(erc20token), 100, "PEPE", "PEPE");
     }
 
     function test_can_mint() public {
         vm.expectEmit(true, true, true, false);
         emit TokenMinted(
             user,
-            bridge.wrappedToNativeTokens(address(erc20token)),
+            bridge.nativeToWrappedTokens(address(erc20token)),
             100
         );
-        bridge.mint(user, address(erc20token), 100);
+        bridge.mint(
+            user,
+            address(erc20token),
+            100,
+            erc20token.name(),
+            erc20token.symbol()
+        );
 
         assertTrue(
-            TokenBase(bridge.wrappedToNativeTokens(address(erc20token)))
+            TokenBase(bridge.nativeToWrappedTokens(address(erc20token)))
                 .balanceOf(user) == 100
         );
 
-        bridge.mint(user, address(erc20token), 100);
+        bridge.mint(
+            user,
+            address(erc20token),
+            100,
+            erc20token.name(),
+            erc20token.symbol()
+        );
         assertTrue(
-            TokenBase(bridge.wrappedToNativeTokens(address(erc20token)))
+            TokenBase(bridge.nativeToWrappedTokens(address(erc20token)))
                 .balanceOf(user) == 200
         );
     }
