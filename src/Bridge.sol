@@ -83,7 +83,9 @@ contract Bridge is Ownable {
     function mint(
         address _to,
         address _erc20token,
-        uint256 _ammount
+        uint256 _ammount,
+        string calldata name,
+        string calldata symbol
     ) external onlyOwner {
         address wrappedTokenAddress = nativeToWrappedTokens[_erc20token];
         TokenBase nativeToken = TokenBase(_erc20token);
@@ -92,11 +94,8 @@ contract Bridge is Ownable {
         if (wrappedTokenAddress != address(0)) {
             wrappedToken = TokenBase(wrappedTokenAddress);
         } else {
-            string memory nativeName = nativeToken.name();
-            string memory nativeSymbol = nativeToken.symbol();
-
-            string memory wrappedName = string.concat("Wrapped", nativeName);
-            string memory wrappedSymbol = string.concat("W", nativeSymbol);
+            string memory wrappedName = string.concat("Wrapped", name);
+            string memory wrappedSymbol = string.concat("W", symbol);
 
             wrappedToken = new TokenBase(
                 wrappedName,
@@ -109,10 +108,11 @@ contract Bridge is Ownable {
 
             wrappedToken.allowAddress(this.owner());
         }
-
-        assert(nativeToWrappedTokens[_erc20token] != address(0));
+        // assert(nativeToWrappedTokens[_erc20token] != address(0));
 
         wrappedToken.mint(_to, _ammount);
         emit TokenMinted(_to, nativeToWrappedTokens[_erc20token], _ammount);
+
+        // return address(0x0);
     }
 }
